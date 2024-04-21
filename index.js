@@ -15,7 +15,7 @@ const fastify = require('fastify')({
 
 fastify.register(require('@fastify/auth'));
 fastify.decorate('verifyApiKey', (req, _reply, done) => {
-  if (req.headers["apikey"] != process.env.API_KEY) {
+  if (req.headers['apikey'] != process.env.API_KEY) {
     return done(new Error('Invalid API Key'));
   }
   done();
@@ -23,7 +23,8 @@ fastify.decorate('verifyApiKey', (req, _reply, done) => {
 
 fastify.after(() => {
   fastify.addHook('onRequest', fastify.auth([fastify.verifyApiKey]));
-  fastify.register(require('./routes/aion.routes'));
+  // fastify.register(require('./routes/aion.routes'));
+  fastify.register(require('./routes/deepl.routes'));
 });
 
 const start = async () => {

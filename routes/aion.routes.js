@@ -12,7 +12,7 @@ const parseAionMessage = (msg) => {
   });
   ret = `[<t:${Math.floor(Date.now() / 1000)}:T>] ${ret}`;
   return ret;
-}
+};
 
 /**
  * Encapsulates the routes
@@ -28,8 +28,8 @@ async function routes(fastify, options) {
       const message = parseAionMessage(req.body.msg);
       const resp = await discord.sendChannelMessage(process.env.THREAD_ID, { content: message });
       reply.send({ success: true });
-    }
-  })
+    },
+  });
 }
 
 module.exports = routes;

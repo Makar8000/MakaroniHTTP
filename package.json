@@ -13,6 +13,7 @@
   "dependencies": {
     "@discordjs/rest": "^2.2.0",
     "@fastify/auth": "^4.4.0",
+    "deepl-node": "^1.13.0",
     "discord-api-types": "^0.37.67",
     "dotenv": "^16.4.1",
     "fastify": "^4.26.0",
