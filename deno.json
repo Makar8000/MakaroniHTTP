@@ -1,0 +1,25 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "start": "deno run --env-file --allow-net --allow-env --allow-read --allow-sys index.ts",
+    "check": "deno check index.ts routes/aion.routes.ts",
+    "prod": "pm2 start index.ts --name \"makaroni-http\" --interpreter deno --interpreter-args \"run --env-file --allow-net --allow-env --allow-read --allow-sys\" --log data/Makaroni-HTTP.log",
+    "stop": "pm2 stop makaroni-http",
+    "monitor": "pm2 logs makaroni-http",
+    "restart": "git pull && deno install --frozen && pm2 restart makaroni-http --update-env",
+    "lint": "deno lint",
+    "lint:fix": "deno lint --fix"
+  },
+  "imports": {
+    "@discordjs/rest": "npm:@discordjs/rest@^2.6.3",
+    "@fastify/auth": "npm:@fastify/auth@^5.1.1",
+    "deepl-node": "npm:deepl-node@^1.28.0",
+    "discord-api-types/v10": "npm:discord-api-types@^0.37.120/v10",
+    "fastify": "npm:fastify@^5.12.5",
+    "pino": "npm:pino@^8.21.0",
+    "pino-pretty": "npm:pino-pretty@^10.3.1"
+  },
+  "lint": {
+    "exclude": ["data/"]
+  }
+}
