@@ -1,5 +1,5 @@
-import * as deepl from 'deepl-node';
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import * as deepl from "deepl-node";
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 
 interface TranslateBody {
   text?: string | string[];
@@ -10,7 +10,7 @@ interface TranslateBody {
 const tlOpts: deepl.TranslatorOptions = {
   sendPlatformInfo: false,
 };
-const translator = new deepl.Translator(Deno.env.get('DEEPL_API_KEY') ?? '', tlOpts);
+const translator = new deepl.Translator(Deno.env.get("DEEPL_API_KEY") ?? "", tlOpts);
 
 /**
  * Encapsulates the routes
@@ -20,19 +20,19 @@ const translator = new deepl.Translator(Deno.env.get('DEEPL_API_KEY') ?? '', tlO
 // deno-lint-ignore require-await
 async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions): Promise<void> {
   fastify.route<{ Body: TranslateBody }>({
-    method: 'POST',
-    url: '/translate',
+    method: "POST",
+    url: "/translate",
     handler: async (req, reply) => {
-      req.log.info('Translate route');
+      req.log.info("Translate route");
       if (!req.body.text) {
-        reply.code(400).send({ error: 'invalid request' });
+        reply.code(400).send({ error: "invalid request" });
         return;
       }
       try {
         const resp = await translator.translateText(
           req.body.text as string,
           req.body.sourceLang ?? null,
-          req.body.targetLang ?? 'en-US',
+          req.body.targetLang ?? "en-US",
         );
         reply.send(resp);
       } catch (ex) {
