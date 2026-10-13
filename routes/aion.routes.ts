@@ -32,7 +32,7 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
     handler: async (req, reply) => {
       req.log.info("Auth route");
       const message = parseAionMessage(req.body.msg);
-      await discord.sendChannelMessage(Deno.env.get("THREAD_ID") ?? "", { content: message });
+      await discord.sendChannelMessage(Bun.env.THREAD_ID ?? "", { content: message });
       reply.send({ success: true });
     },
   });

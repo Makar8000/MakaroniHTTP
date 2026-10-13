@@ -1,0 +1,29 @@
+{
+  "name": "makaroni-http",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts",
+    "prod": "pm2 start index.ts --name \"makaroni-http\" --interpreter bun --log data/Makaroni-HTTP.log",
+    "stop": "pm2 stop makaroni-http",
+    "monitor": "pm2 logs makaroni-http",
+    "restart": "git pull && bun install --frozen-lockfile && pm2 restart makaroni-http --update-env",
+    "check": "tsc --noEmit",
+    "lint": "biome check",
+    "lint:fix": "biome check --write"
+  },
+  "dependencies": {
+    "@discordjs/rest": "^2.6.3",
+    "@fastify/auth": "^5.1.1",
+    "deepl-node": "^1.28.0",
+    "discord-api-types": "^0.37.120",
+    "fastify": "^5.12.5",
+    "pino": "^8.21.0",
+    "pino-pretty": "^10.3.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@types/bun": "latest",
+    "typescript": "^7.0.2"
+  }
+}

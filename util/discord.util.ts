@@ -1,7 +1,11 @@
 import { REST } from "@discordjs/rest";
-import { type RESTPostAPIChannelMessageJSONBody, type RESTPostAPIChannelMessageResult, Routes } from "discord-api-types/v10";
+import {
+  type RESTPostAPIChannelMessageJSONBody,
+  type RESTPostAPIChannelMessageResult,
+  Routes,
+} from "discord-api-types/v10";
 
-const rest = new REST({ version: "10" }).setToken(Deno.env.get("DISCORD_TOKEN") ?? "");
+const rest = new REST({ version: "10" }).setToken(Bun.env.DISCORD_TOKEN ?? "");
 
 export const sendChannelMessage = async (
   channelId: string,

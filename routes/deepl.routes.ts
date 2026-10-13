@@ -10,7 +10,7 @@ interface TranslateBody {
 const tlOpts: deepl.TranslatorOptions = {
   sendPlatformInfo: false,
 };
-const translator = new deepl.Translator(Deno.env.get("DEEPL_API_KEY") ?? "", tlOpts);
+const translator = new deepl.Translator(Bun.env.DEEPL_API_KEY ?? "", tlOpts);
 
 /**
  * Encapsulates the routes
