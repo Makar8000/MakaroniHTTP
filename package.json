@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun run index.ts",
-    "prod": "pm2 start index.ts --name \"makaroni-http\" --interpreter bun --log data/Makaroni-HTTP.log",
+    "start": "bun index.ts",
+    "prod": "pm2 start \"bun index.ts\" --name \"makaroni-http\" --log data/Makaroni-HTTP.log",
     "stop": "pm2 stop makaroni-http",
     "monitor": "pm2 logs makaroni-http",
     "restart": "git pull && bun install --frozen-lockfile && pm2 restart makaroni-http --update-env",
