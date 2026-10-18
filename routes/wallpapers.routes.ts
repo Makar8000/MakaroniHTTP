@@ -21,8 +21,39 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
   // Require auth for POST, PUT, and DELETE
   const auth = { onRequest: fastify.basicAuth };
 
-  fastify.get<{ Querystring: WallpaperQuery }>("/wallpapers", { schema: { querystring: querySchema } }, async (req) =>
-    wallpapers.list(req.query).map(toResponse),
+  fastify.get<{ Querystring: WallpaperQuery }>(
+    "/wallpapers",
+    { schema: { querystring: querySchema } },
+    async (req, reply) => {
+      const { rows, total } = wallpapers.list(req.query);
+      const { limit, offset = 0, random = true } = req.query;
+
+      reply.header("X-Total-Count", total).header("X-Offset", offset);
+      if (limit) {
+        reply.header("X-Limit", limit);
+      }
+
+      // RFC 8288 Link header for next/prev pages
+      if (limit && !random) {
+        const link = (o: number, rel: string) => {
+          const u = new URL(req.url, "http://x");
+          u.searchParams.set("offset", String(o));
+          return `<${u.pathname}${u.search}>; rel="${rel}"`;
+        };
+        const links: string[] = [];
+        if (offset > 0) {
+          links.push(link(Math.max(0, offset - limit), "prev"));
+        }
+        if (offset + limit < total) {
+          links.push(link(offset + limit, "next"));
+        }
+        if (links.length) {
+          reply.header("Link", links.join(", "));
+        }
+      }
+
+      return rows.map(toResponse);
+    },
   );
 
   fastify.post<{ Body: WallpaperBody }>(

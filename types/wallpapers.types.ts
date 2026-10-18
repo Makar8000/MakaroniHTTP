@@ -14,5 +14,7 @@ export interface WallpaperRow {
 
 export interface WallpaperQuery {
   limit?: number;
+  offset?: number;
   tags?: string;
+  random?: boolean;
 }

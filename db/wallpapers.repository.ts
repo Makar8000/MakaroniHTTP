@@ -3,18 +3,33 @@ import { db } from "./connection.ts";
 
 const COLUMNS = "id, file_url, title, tags";
 
-/** Enabled wallpapers in random order, optionally containing ALL of the space-delimited `tags`. */
-export const list = ({ limit, tags }: WallpaperQuery): WallpaperRow[] => {
+/**
+ * Enabled wallpapers, optionally filtered by `tags`.
+ * Random order by default; `random: false` sorts by id so `offset` pages are stable.
+ * @returns the requested page plus `total`, the number of matches ignoring limit/offset
+ */
+export const list = ({
+  limit,
+  offset = 0,
+  tags,
+  random = true,
+}: WallpaperQuery): { rows: WallpaperRow[]; total: number } => {
   const wanted = (tags ?? "").split(/\s+/).filter(Boolean);
   // instr on space-padded strings = exact whole-tag match, and avoids LIKE wildcards ("_" in tags)
-  const where = ["enabled = 1", ...wanted.map(() => "instr(' ' || tags || ' ', ?) > 0")];
+  const where = ["enabled = 1", ...wanted.map(() => "instr(' ' || tags || ' ', ?) > 0")].join(" AND ");
   const params: (string | number)[] = wanted.map((t) => ` ${t} `);
-  let sql = `SELECT ${COLUMNS} FROM wallpapers WHERE ${where.join(" AND ")} ORDER BY RANDOM()`;
-  if (limit) {
-    sql += " LIMIT ?";
-    params.push(limit);
+
+  const total = db
+    .query<{ n: number }, (string | number)[]>(`SELECT COUNT(*) AS n FROM wallpapers WHERE ${where}`)
+    .get(...params)!.n;
+
+  let sql = `SELECT ${COLUMNS} FROM wallpapers WHERE ${where} ORDER BY ${random ? "RANDOM()" : "id"}`;
+  if (limit || offset) {
+    // SQLite only allows OFFSET after LIMIT; -1 means "no limit"
+    sql += " LIMIT ? OFFSET ?";
+    params.push(limit ?? -1, offset);
   }
-  return db.query<WallpaperRow, (string | number)[]>(sql).all(...params);
+  return { rows: db.query<WallpaperRow, (string | number)[]>(sql).all(...params), total };
 };
 
 export const findByUrl = (url: string): WallpaperRow | null =>

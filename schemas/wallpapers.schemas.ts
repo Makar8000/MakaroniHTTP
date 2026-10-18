@@ -1,6 +1,11 @@
 export const querySchema = {
   type: "object",
-  properties: { limit: { type: "integer", minimum: 1 }, tags: { type: "string" } },
+  properties: {
+    limit: { type: "integer", minimum: 1 },
+    offset: { type: "integer", minimum: 0 },
+    tags: { type: "string" },
+    random: { type: "boolean" },
+  },
 };
 
 export const bodySchema = {
