@@ -1,4 +1,4 @@
-import type { WallpaperBody, WallpaperQuery, WallpaperRow } from "../types/wallpapers.types.ts";
+import type { WallpaperBody, WallpaperDomainRow, WallpaperQuery, WallpaperRow } from "../types/wallpapers.types.ts";
 import { db } from "./connection.ts";
 
 const COLUMNS = "id, file_url, title, tags";
@@ -31,6 +31,11 @@ export const list = ({
   }
   return { rows: db.query<WallpaperRow, (string | number)[]>(sql).all(...params), total };
 };
+
+export const findDomain = (name: string): WallpaperDomainRow | null =>
+  db
+    .query<WallpaperDomainRow, [string]>("SELECT name, base_url, tags, type FROM wallpaper_domains WHERE name = ?")
+    .get(name);
 
 export const findByUrl = (url: string): WallpaperRow | null =>
   db.query<WallpaperRow, [string]>(`SELECT ${COLUMNS} FROM wallpapers WHERE file_url = ?`).get(url);

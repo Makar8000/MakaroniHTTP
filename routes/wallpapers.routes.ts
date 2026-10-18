@@ -1,7 +1,12 @@
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import * as wallpapers from "../db/wallpapers.repository.ts";
 import { bodySchema, paramsSchema, patchBodySchema, querySchema } from "../schemas/wallpapers.schemas.ts";
-import type { WallpaperBody, WallpaperQuery, WallpaperRow } from "../types/wallpapers.types.ts";
+import type { WallpaperBody, WallpaperDomainType, WallpaperQuery, WallpaperRow } from "../types/wallpapers.types.ts";
+
+const POSTS_PATH: Record<Exclude<WallpaperDomainType, "custom">, string> = {
+  danbooru: "posts.json",
+  moebooru: "post.json",
+};
 
 const toResponse = (r: WallpaperRow) => ({
   id: r.id,
@@ -20,10 +25,10 @@ const toResponse = (r: WallpaperRow) => ({
 async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions): Promise<void> {
   // Require auth for POST, PUT, and DELETE
   const auth = { onRequest: fastify.basicAuth };
-
-  // /posts.json is the booru path, so both the base route and posts.json is included
-  for (const url of ["/wallpapers", "/wallpapers/posts.json"]) {
-    fastify.get<{ Querystring: WallpaperQuery }>(url, { schema: { querystring: querySchema } }, async (req, reply) => {
+  fastify.get<{ Querystring: WallpaperQuery }>(
+    "/wallpapers",
+    { schema: { querystring: querySchema } },
+    async (req, reply) => {
       const { rows, total } = wallpapers.list(req.query);
       const { limit, offset = 0, random = true } = req.query;
 
@@ -52,6 +57,33 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
       }
 
       return rows.map(toResponse);
+    },
+  );
+
+  // Forward to the domain's base_url. The domain's stored tags are appended to the client's `tags` param.
+  // The plugin is set to "Danbooru", which always asks for posts.json; the path actually requested comes from `type`.
+  for (const url of ["/wallpapers/:domain", "/wallpapers/:domain/posts.json"]) {
+    fastify.get<{ Params: { domain: string } }>(url, async (req, reply) => {
+      const row = wallpapers.findDomain(req.params.domain);
+      if (!row) {
+        return reply.code(404).send({ error: "unknown domain" });
+      }
+      const params = new URLSearchParams(req.url.split("?")[1] ?? "");
+      // Set drops repeated tags and keeps first-seen order (client tags first)
+      const tags = [...new Set(`${params.get("tags") ?? ""} ${row.tags}`.split(/\s+/).filter(Boolean))].join(" ");
+      if (tags) {
+        params.set("tags", tags);
+      } else {
+        params.delete("tags");
+      }
+      const target = new URL(
+        row.type === "custom" ? row.base_url : `${row.base_url.replace(/\/+$/, "")}/${POSTS_PATH[row.type]}`,
+      );
+      // set (not replace the whole search) so a query already present in a custom base_url survives
+      for (const [key, value] of params) {
+        target.searchParams.set(key, value);
+      }
+      return reply.redirect(target.toString(), 307);
     });
   }
 

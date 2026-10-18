@@ -12,6 +12,15 @@ export interface WallpaperRow {
   tags: string;
 }
 
+export type WallpaperDomainType = "danbooru" | "moebooru" | "custom";
+
+export interface WallpaperDomainRow {
+  name: string;
+  base_url: string;
+  tags: string;
+  type: WallpaperDomainType;
+}
+
 export interface WallpaperQuery {
   limit?: number;
   offset?: number;

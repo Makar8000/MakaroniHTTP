@@ -16,3 +16,10 @@ db.run(`CREATE TABLE IF NOT EXISTS wallpapers (
   tags TEXT NOT NULL,
   enabled INTEGER NOT NULL CHECK (enabled IN (0, 1))
 )`);
+
+db.run(`CREATE TABLE IF NOT EXISTS wallpaper_domains (
+  name TEXT PRIMARY KEY,
+  base_url TEXT NOT NULL,
+  tags TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'danbooru' CHECK (type IN ('danbooru', 'moebooru', 'custom'))
+)`);
