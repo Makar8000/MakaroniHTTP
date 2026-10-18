@@ -21,10 +21,9 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
   // Require auth for POST, PUT, and DELETE
   const auth = { onRequest: fastify.basicAuth };
 
-  fastify.get<{ Querystring: WallpaperQuery }>(
-    "/wallpapers",
-    { schema: { querystring: querySchema } },
-    async (req, reply) => {
+  // /posts.json is the booru path, so both the base route and posts.json is included
+  for (const url of ["/wallpapers", "/wallpapers/posts.json"]) {
+    fastify.get<{ Querystring: WallpaperQuery }>(url, { schema: { querystring: querySchema } }, async (req, reply) => {
       const { rows, total } = wallpapers.list(req.query);
       const { limit, offset = 0, random = true } = req.query;
 
@@ -53,8 +52,8 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
       }
 
       return rows.map(toResponse);
-    },
-  );
+    });
+  }
 
   fastify.post<{ Body: WallpaperBody }>(
     "/wallpapers",
