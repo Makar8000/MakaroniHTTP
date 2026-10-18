@@ -1,26 +1,10 @@
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { AionChatBody } from "../types/aion.types.ts";
+import { parseAionMessage } from "../util/aion.util.ts";
 import * as discord from "../util/discord.util.ts";
 
-interface AionChatBody {
-  msg: string;
-}
-
-const REG_REPLACE: { regex: RegExp; replace: string }[] = [
-  { regex: /\[charname:(?<charname>[^;\]]+)[^\]]*\]/g, replace: "$1" },
-  { regex: /\[cmd:(?<charname>[^;\]]+)[^\]]*\]/g, replace: "<Recruit Group>" },
-  { regex: /\[item: ?(?<itemId>[^;\]]+)[^\]]*\]/g, replace: "<https://aioncodex.com/usc/item/$1/>" },
-];
-const parseAionMessage = (msg: string): string => {
-  let ret = msg;
-  REG_REPLACE.forEach((r) => {
-    ret = ret.replaceAll(r.regex, r.replace);
-  });
-  ret = `[<t:${Math.floor(Date.now() / 1000)}:T>] ${ret}`;
-  return ret;
-};
-
 /**
- * Encapsulates the routes
+ * Encapsulates the routes for the aion endpoints
  * @param fastify Encapsulated Fastify Instance
  * @param _options plugin options, refer to https://www.fastify.io/docs/latest/Reference/Plugins/#plugin-options
  */

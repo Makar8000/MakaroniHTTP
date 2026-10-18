@@ -1,19 +1,9 @@
-import * as deepl from "deepl-node";
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
-
-interface TranslateBody {
-  text?: string | string[];
-  sourceLang?: deepl.SourceLanguageCode | null;
-  targetLang?: deepl.TargetLanguageCode;
-}
-
-const tlOpts: deepl.TranslatorOptions = {
-  sendPlatformInfo: false,
-};
-const translator = new deepl.Translator(Bun.env.DEEPL_API_KEY ?? "", tlOpts);
+import type { TranslateBody } from "../types/deepl.types.ts";
+import { translator } from "../util/deepl.util.ts";
 
 /**
- * Encapsulates the routes
+ * Encapsulates the routes for the translate endpoint
  * @param fastify Encapsulated Fastify Instance
  * @param _options plugin options, refer to https://www.fastify.io/docs/latest/Reference/Plugins/#plugin-options
  */
