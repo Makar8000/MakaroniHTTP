@@ -1,15 +1,8 @@
-import fastifyAuth from "@fastify/auth";
-import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
+import fastifyBasicAuth from "@fastify/basic-auth";
+import Fastify from "fastify";
+import aionRoutes from "./routes/aion.routes.ts";
 import deeplRoutes from "./routes/deepl.routes.ts";
 import healthRoutes from "./routes/health.routes.ts";
-
-// import aionRoutes from './routes/aion.routes.ts';
-
-declare module "fastify" {
-  interface FastifyInstance {
-    verifyApiKey: (req: FastifyRequest, reply: FastifyReply, done: (err?: Error) => void) => void;
-  }
-}
 
 const fastify = Fastify({
   logger: {
@@ -23,19 +16,29 @@ const fastify = Fastify({
   },
 });
 
-fastify.register(fastifyAuth);
-fastify.decorate("verifyApiKey", (req: FastifyRequest, _reply: FastifyReply, done: (err?: Error) => void) => {
-  if (req.headers.apikey !== Bun.env.API_KEY) {
-    return done(new Error("Invalid API Key"));
-  }
-  done();
-});
+if (!Bun.env.BASIC_AUTH_HASH?.startsWith("$argon2")) {
+  fastify.log.error("BASIC_AUTH_HASH not set");
+  process.exit(1);
+}
 
 fastify.after(() => {
-  fastify.addHook("onRequest", fastify.auth([fastify.verifyApiKey]));
+  // Public: no auth required
   fastify.register(healthRoutes);
-  // fastify.register(aionRoutes);
-  fastify.register(deeplRoutes);
+
+  fastify.register(async (protectedScope) => {
+    await protectedScope.register(fastifyBasicAuth, {
+      authenticate: { realm: "MakaroniHTTP" },
+      validate: async (username: string, password: string) => {
+        if (!(await Bun.password.verify(`${username}:${password}`, Bun.env.BASIC_AUTH_HASH!))) {
+          throw new Error("Invalid credentials");
+        }
+      },
+    });
+    protectedScope.addHook("onRequest", protectedScope.basicAuth);
+    // Protected: Auth required endpoints
+    protectedScope.register(aionRoutes);
+    protectedScope.register(deeplRoutes);
+  });
 });
 
 const start = async (): Promise<void> => {
