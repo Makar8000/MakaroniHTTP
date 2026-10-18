@@ -17,7 +17,6 @@ const translator = new deepl.Translator(Bun.env.DEEPL_API_KEY ?? "", tlOpts);
  * @param fastify Encapsulated Fastify Instance
  * @param _options plugin options, refer to https://www.fastify.io/docs/latest/Reference/Plugins/#plugin-options
  */
-// deno-lint-ignore require-await
 async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions): Promise<void> {
   fastify.route<{ Body: TranslateBody }>({
     method: "POST",
