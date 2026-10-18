@@ -15,6 +15,8 @@ export const bodySchema = {
   },
 };
 
+export const patchBodySchema = { ...bodySchema, required: [] };
+
 export const paramsSchema = {
   type: "object",
   properties: { id: { type: "integer" } },

@@ -1,10 +1,13 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
-// create `data` folder if it doesn't already exist
-mkdirSync("data", { recursive: true });
+const DB_PATH = Bun.env.DB_PATH ?? "data/data.db";
 
-export const db = new Database("data/data.db", { create: true });
+// create the db's folder (`data` by default) if it doesn't already exist
+mkdirSync(dirname(DB_PATH), { recursive: true });
+
+export const db = new Database(DB_PATH, { create: true });
 
 db.run(`CREATE TABLE IF NOT EXISTS wallpapers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

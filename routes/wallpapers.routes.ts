@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import * as wallpapers from "../db/wallpapers.repository.ts";
-import { bodySchema, paramsSchema, querySchema } from "../schemas/wallpapers.schemas.ts";
+import { bodySchema, paramsSchema, patchBodySchema, querySchema } from "../schemas/wallpapers.schemas.ts";
 import type { WallpaperBody, WallpaperQuery, WallpaperRow } from "../types/wallpapers.types.ts";
 
 const toResponse = (r: WallpaperRow) => ({
@@ -37,13 +37,23 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
     },
   );
 
-  fastify.put<{ Body: WallpaperBody }>("/wallpapers", { ...auth, schema: { body: bodySchema } }, async (req, reply) => {
-    if (!wallpapers.findByUrl(req.body.file_url)) {
-      return reply.code(404).send({ error: "file_url not found" });
-    }
-    wallpapers.updateByUrl(req.body);
-    return toResponse(wallpapers.findByUrl(req.body.file_url)!);
-  });
+  fastify.put<{ Params: { id: number }; Body: Partial<WallpaperBody> }>(
+    "/wallpapers/:id",
+    { ...auth, schema: { params: paramsSchema, body: patchBodySchema } },
+    async (req, reply) => {
+      const { id } = req.params;
+      if (!wallpapers.findById(id)) {
+        return reply.code(404).send({ error: "not found" });
+      }
+      // changing file_url to one that belongs to a different row would violate UNIQUE
+      const other = req.body.file_url ? wallpapers.findByUrl(req.body.file_url) : null;
+      if (other && other.id !== id) {
+        return reply.code(409).send({ error: "file_url already exists" });
+      }
+      wallpapers.update(id, req.body);
+      return toResponse(wallpapers.findById(id)!);
+    },
+  );
 
   fastify.delete<{ Params: { id: number } }>(
     "/wallpapers/:id",

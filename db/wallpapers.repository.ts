@@ -29,13 +29,23 @@ export const insert = ({ title, tags, file_url, enabled }: WallpaperBody): void 
   );
 };
 
-export const updateByUrl = ({ title, tags, file_url, enabled }: WallpaperBody): void => {
-  db.query("UPDATE wallpapers SET title = ?, tags = ?, enabled = ? WHERE file_url = ?").run(
-    title,
-    tags,
-    enabled ? 1 : 0,
-    file_url,
-  );
+export const findById = (id: number): WallpaperRow | null =>
+  db.query<WallpaperRow, [number]>(`SELECT ${COLUMNS} FROM wallpapers WHERE id = ?`).get(id);
+
+const UPDATABLE = ["file_url", "title", "tags", "enabled"] as const;
+/** Updates only the provided fields. Column names come from the UPDATABLE whitelist, values are bound. */
+export const update = (id: number, patch: Partial<WallpaperBody>): void => {
+  const fields = UPDATABLE.filter((k) => patch[k] !== undefined);
+  if (!fields.length) {
+    return;
+  }
+  const values = fields.map((k) => {
+    if (k === "enabled") {
+      return patch.enabled ? 1 : 0;
+    }
+    return patch[k] as string;
+  });
+  db.query(`UPDATE wallpapers SET ${fields.map((k) => `${k} = ?`).join(", ")} WHERE id = ?`).run(...values, id);
 };
 
 /** @returns true if a row was deleted */
