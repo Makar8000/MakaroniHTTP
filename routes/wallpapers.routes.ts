@@ -141,6 +141,8 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
     });
   }
 
+  fastify.get("/wallpapers/domains", auth, async () => wallpapers.listDomains());
+
   fastify.post<{ Body: WallpaperDomainBody }>(
     "/wallpapers/domains",
     { ...auth, schema: { body: domainBodySchema } },

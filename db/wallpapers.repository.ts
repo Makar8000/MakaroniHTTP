@@ -38,10 +38,13 @@ export const list = ({
   return { rows: db.query<WallpaperRow, (string | number)[]>(sql).all(...params), total };
 };
 
+const DOMAIN_COLUMNS = "name, base_url, tags, type";
+
+export const listDomains = (): WallpaperDomainRow[] =>
+  db.query<WallpaperDomainRow, []>(`SELECT ${DOMAIN_COLUMNS} FROM wallpaper_domains ORDER BY name`).all();
+
 export const findDomain = (name: string): WallpaperDomainRow | null =>
-  db
-    .query<WallpaperDomainRow, [string]>("SELECT name, base_url, tags, type FROM wallpaper_domains WHERE name = ?")
-    .get(name);
+  db.query<WallpaperDomainRow, [string]>(`SELECT ${DOMAIN_COLUMNS} FROM wallpaper_domains WHERE name = ?`).get(name);
 
 export const findByUrl = (url: string): WallpaperRow | null =>
   db.query<WallpaperRow, [string]>(`SELECT ${COLUMNS} FROM wallpapers WHERE file_url = ?`).get(url);
