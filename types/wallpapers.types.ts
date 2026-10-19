@@ -27,3 +27,5 @@ export interface WallpaperQuery {
   tags?: string;
   random?: boolean;
 }
+
+export type WallpaperDomainBody = Omit<WallpaperDomainRow, "type"> & { type?: WallpaperDomainType };

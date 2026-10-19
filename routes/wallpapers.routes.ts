@@ -1,7 +1,20 @@
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import * as wallpapers from "../db/wallpapers.repository.ts";
-import { bodySchema, paramsSchema, patchBodySchema, querySchema } from "../schemas/wallpapers.schemas.ts";
-import type { WallpaperBody, WallpaperDomainType, WallpaperQuery, WallpaperRow } from "../types/wallpapers.types.ts";
+import {
+  bodySchema,
+  domainBodySchema,
+  domainPatchBodySchema,
+  paramsSchema,
+  patchBodySchema,
+  querySchema,
+} from "../schemas/wallpapers.schemas.ts";
+import type {
+  WallpaperBody,
+  WallpaperDomainBody,
+  WallpaperDomainType,
+  WallpaperQuery,
+  WallpaperRow,
+} from "../types/wallpapers.types.ts";
 
 const POSTS_PATH: Record<Exclude<WallpaperDomainType, "custom">, string> = {
   danbooru: "posts.json",
@@ -60,33 +73,6 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
     },
   );
 
-  // Forward to the domain's base_url. The domain's stored tags are appended to the client's `tags` param.
-  // The plugin is set to "Danbooru", which always asks for posts.json; the path actually requested comes from `type`.
-  for (const url of ["/wallpapers/:domain", "/wallpapers/:domain/posts.json"]) {
-    fastify.get<{ Params: { domain: string } }>(url, async (req, reply) => {
-      const row = wallpapers.findDomain(req.params.domain);
-      if (!row) {
-        return reply.code(404).send({ error: "unknown domain" });
-      }
-      const params = new URLSearchParams(req.url.split("?")[1] ?? "");
-      // Set drops repeated tags and keeps first-seen order (client tags first)
-      const tags = [...new Set(`${params.get("tags") ?? ""} ${row.tags}`.split(/\s+/).filter(Boolean))].join(" ");
-      if (tags) {
-        params.set("tags", tags);
-      } else {
-        params.delete("tags");
-      }
-      const target = new URL(
-        row.type === "custom" ? row.base_url : `${row.base_url.replace(/\/+$/, "")}/${POSTS_PATH[row.type]}`,
-      );
-      // set (not replace the whole search) so a query already present in a custom base_url survives
-      for (const [key, value] of params) {
-        target.searchParams.set(key, value);
-      }
-      return reply.redirect(target.toString(), 307);
-    });
-  }
-
   fastify.post<{ Body: WallpaperBody }>(
     "/wallpapers",
     { ...auth, schema: { body: bodySchema } },
@@ -127,6 +113,65 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
       return reply.code(204).send();
     },
   );
+
+  // Forward to the domain's base_url. The domain's stored tags are appended to the client's `tags` param.
+  // The plugin is set to "Danbooru", which always asks for posts.json; the path actually requested comes from `type`.
+  for (const url of ["/wallpapers/:domain", "/wallpapers/:domain/posts.json"]) {
+    fastify.get<{ Params: { domain: string } }>(url, async (req, reply) => {
+      const row = wallpapers.findDomain(req.params.domain);
+      if (!row) {
+        return reply.code(404).send({ error: "unknown domain" });
+      }
+      const params = new URLSearchParams(req.url.split("?")[1] ?? "");
+      // Set drops repeated tags and keeps first-seen order (client tags first)
+      const tags = [...new Set(`${params.get("tags") ?? ""} ${row.tags}`.split(/\s+/).filter(Boolean))].join(" ");
+      if (tags) {
+        params.set("tags", tags);
+      } else {
+        params.delete("tags");
+      }
+      const target = new URL(
+        row.type === "custom" ? row.base_url : `${row.base_url.replace(/\/+$/, "")}/${POSTS_PATH[row.type]}`,
+      );
+      // set (not replace the whole search) so a query already present in a custom base_url survives
+      for (const [key, value] of params) {
+        target.searchParams.set(key, value);
+      }
+      return reply.redirect(target.toString(), 307);
+    });
+  }
+
+  fastify.post<{ Body: WallpaperDomainBody }>(
+    "/wallpapers/domains",
+    { ...auth, schema: { body: domainBodySchema } },
+    async (req, reply) => {
+      if (wallpapers.findDomain(req.body.name)) {
+        return reply.code(409).send({ error: "domain already exists" });
+      }
+      wallpapers.insertDomain(req.body);
+      return reply.code(201).send(wallpapers.findDomain(req.body.name));
+    },
+  );
+
+  fastify.put<{ Params: { name: string }; Body: Partial<WallpaperDomainBody> }>(
+    "/wallpapers/domains/:name",
+    { ...auth, schema: { body: domainPatchBodySchema } },
+    async (req, reply) => {
+      const { name } = req.params;
+      if (!wallpapers.findDomain(name)) {
+        return reply.code(404).send({ error: "not found" });
+      }
+      wallpapers.updateDomain(name, req.body);
+      return wallpapers.findDomain(name);
+    },
+  );
+
+  fastify.delete<{ Params: { name: string } }>("/wallpapers/domains/:name", auth, async (req, reply) => {
+    if (!wallpapers.removeDomain(req.params.name)) {
+      return reply.code(404).send({ error: "not found" });
+    }
+    return reply.code(204).send();
+  });
 }
 
 export default routes;

@@ -1,4 +1,10 @@
-import type { WallpaperBody, WallpaperDomainRow, WallpaperQuery, WallpaperRow } from "../types/wallpapers.types.ts";
+import type {
+  WallpaperBody,
+  WallpaperDomainBody,
+  WallpaperDomainRow,
+  WallpaperQuery,
+  WallpaperRow,
+} from "../types/wallpapers.types.ts";
 import { db } from "./connection.ts";
 
 const COLUMNS = "id, file_url, title, tags";
@@ -70,3 +76,29 @@ export const update = (id: number, patch: Partial<WallpaperBody>): void => {
 
 /** @returns true if a row was deleted */
 export const remove = (id: number): boolean => db.query("DELETE FROM wallpapers WHERE id = ?").run(id).changes > 0;
+
+export const insertDomain = ({ name, base_url, tags, type = "danbooru" }: WallpaperDomainBody): void => {
+  db.query("INSERT INTO wallpaper_domains (name, base_url, tags, type) VALUES (?, ?, ?, ?)").run(
+    name,
+    base_url,
+    tags,
+    type,
+  );
+};
+
+const DOMAIN_UPDATABLE = ["base_url", "tags", "type"] as const;
+/** Updates only the provided fields. Column names come from the DOMAIN_UPDATABLE whitelist, values are bound. */
+export const updateDomain = (name: string, patch: Partial<WallpaperDomainBody>): void => {
+  const fields = DOMAIN_UPDATABLE.filter((k) => patch[k] !== undefined);
+  if (!fields.length) {
+    return;
+  }
+  db.query(`UPDATE wallpaper_domains SET ${fields.map((k) => `${k} = ?`).join(", ")} WHERE name = ?`).run(
+    ...fields.map((k) => patch[k] as string),
+    name,
+  );
+};
+
+/** @returns true if a row was deleted */
+export const removeDomain = (name: string): boolean =>
+  db.query("DELETE FROM wallpaper_domains WHERE name = ?").run(name).changes > 0;

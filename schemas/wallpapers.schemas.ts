@@ -26,3 +26,20 @@ export const paramsSchema = {
   type: "object",
   properties: { id: { type: "integer" } },
 };
+
+export const domainBodySchema = {
+  type: "object",
+  required: ["name", "base_url", "tags"],
+  additionalProperties: false,
+  properties: {
+    // used as a path segment in /wallpapers/:domain
+    name: { type: "string", pattern: "^[A-Za-z0-9_-]+$", maxLength: 100 },
+    base_url: { type: "string", pattern: "^https?://\\S+$", maxLength: 2048 },
+    tags: { type: "string", maxLength: 2000 },
+    type: { type: "string", enum: ["danbooru", "moebooru", "custom"] },
+  },
+};
+
+// name is the primary key and comes from the path, so it can't be patched
+const { name: _name, ...domainPatchProperties } = domainBodySchema.properties;
+export const domainPatchBodySchema = { ...domainBodySchema, required: [], properties: domainPatchProperties };

@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import aionRoutes from "./routes/aion.routes.ts";
 import deeplRoutes from "./routes/deepl.routes.ts";
 import healthRoutes from "./routes/health.routes.ts";
+import pushoverRoutes from "./routes/pushover.routes.ts";
 import wallpapersRoutes from "./routes/wallpapers.routes.ts";
 
 const fastify = Fastify({
@@ -41,6 +42,7 @@ fastify.register(fastifyBasicAuth, {
 fastify.after(() => {
   fastify.register(healthRoutes);
   fastify.register(wallpapersRoutes);
+  fastify.register(pushoverRoutes);
 
   fastify.register(async (protectedScope) => {
     protectedScope.addHook("onRequest", protectedScope.basicAuth);
