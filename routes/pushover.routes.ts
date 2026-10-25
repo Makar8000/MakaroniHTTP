@@ -15,20 +15,26 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
     schema: { body: bodySchema },
     handler: async (req, reply) => {
       req.log.info("Find my phone route");
-      const resp = await fetch("https://api.pushover.net/1/messages.json", {
-        method: "POST",
-        body: new URLSearchParams({
-          token: Bun.env.PUSHOVER_API_KEY ?? "",
-          user: Bun.env.PUSHOVER_USER_KEY ?? "",
-          title: req.body?.title ?? "Find my device",
-          message: req.body?.message ?? "Alert sent from Makaroni",
-          priority: "2",
-          retry: "45",
-          expire: `${60 * 5}`,
-          sound: "peace",
-        }),
-      });
-      reply.code(resp.ok ? 200 : 502).send(await resp.json());
+      try {
+        const resp = await fetch("https://api.pushover.net/1/messages.json", {
+          method: "POST",
+          body: new URLSearchParams({
+            token: Bun.env.PUSHOVER_API_KEY ?? "",
+            user: Bun.env.PUSHOVER_USER_KEY ?? "",
+            title: req.body?.title ?? "Find my device",
+            message: req.body?.message ?? "Alert sent from Makaroni",
+            priority: "2",
+            retry: "45",
+            expire: `${60 * 5}`,
+            sound: "peace",
+          }),
+        });
+        return reply.code(resp.ok ? 200 : 502).send(await resp.json());
+      } catch (err) {
+        // network failure, or a non-JSON body such as a proxy error page
+        req.log.error(err);
+        return reply.code(502).send({ error: "pushover request failed" });
+      }
     },
   });
 }

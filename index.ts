@@ -10,6 +10,8 @@ import wallpapersRoutes from "./routes/wallpapers.routes.ts";
 
 const fastify = Fastify({
   trustProxy: "127.0.0.1",
+  // unknown body fields get a 400 instead of being silently dropped; union types are for the translate text field
+  ajv: { customOptions: { removeAdditional: false, allowUnionTypes: true } },
   logger: {
     transport: {
       target: "pino-pretty",

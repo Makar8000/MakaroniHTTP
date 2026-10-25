@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import { bodySchema } from "../schemas/deepl.schemas.ts";
 import type { TranslateBody } from "../types/deepl.types.ts";
 import { translator } from "../util/deepl.util.ts";
 
@@ -11,21 +12,24 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
   fastify.route<{ Body: TranslateBody }>({
     method: "POST",
     url: "/translate",
+    schema: { body: bodySchema },
     handler: async (req, reply) => {
       req.log.info("Translate route");
-      if (!req.body.text) {
-        reply.code(400).send({ error: "invalid request" });
-        return;
-      }
       try {
-        const resp = await translator.translateText(
-          req.body.text as string,
+        return await translator.translateText(
+          req.body.text,
           req.body.sourceLang ?? null,
           req.body.targetLang ?? "en-US",
         );
-        reply.send(resp);
       } catch (ex) {
-        reply.code(500).send({ error: (ex as Error).message });
+        const { message } = ex as Error;
+        // shortcut: deepl-node marks bad input (DeepL's 400s, its own 'en'/'pt' check) only in the message, reworded messages fall back to 502
+        if (/^(Bad request|targetLang=|Unexpected status code: 413)/.test(message)) {
+          return reply.code(400).send({ error: message });
+        }
+        // message only: on connection failures the error object carries the request's DeepL-Auth-Key header
+        req.log.error(`DeepL request failed: ${message}`);
+        return reply.code(502).send({ error: "translation failed" });
       }
     },
   });

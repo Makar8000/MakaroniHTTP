@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import { bodySchema } from "../schemas/aion.schemas.ts";
 import type { AionChatBody } from "../types/aion.types.ts";
 import { parseAionMessage } from "../util/aion.util.ts";
 import * as discord from "../util/discord.util.ts";
@@ -12,11 +13,20 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
   fastify.route<{ Body: AionChatBody }>({
     method: "POST",
     url: "/aionChat",
+    schema: { body: bodySchema },
     handler: async (req, reply) => {
       req.log.info("Auth route");
       const message = parseAionMessage(req.body.msg);
-      await discord.sendChannelMessage(Bun.env.THREAD_ID ?? "", { content: message });
-      reply.send({ success: true });
+      try {
+        await discord.sendChannelMessage(Bun.env.THREAD_ID ?? "", {
+          content: message,
+          allowed_mentions: { parse: [] },
+        });
+      } catch (err) {
+        req.log.error(err);
+        return reply.code(502).send({ error: "discord request failed" });
+      }
+      return reply.send({ success: true });
     },
   });
 }

@@ -5,6 +5,7 @@ export const querySchema = {
     offset: { type: "integer", minimum: 0 },
     tags: { type: "string" },
     random: { type: "boolean" },
+    include_disabled: { type: "boolean" },
   },
 };
 

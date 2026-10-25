@@ -7,16 +7,9 @@ import {
 
 const rest = new REST({ version: "10" }).setToken(Bun.env.DISCORD_TOKEN ?? "");
 
+/** @throws when Discord rejects the message or can't be reached */
 export const sendChannelMessage = async (
   channelId: string,
   body: RESTPostAPIChannelMessageJSONBody,
-): Promise<RESTPostAPIChannelMessageResult | null> => {
-  try {
-    const response = await rest.post(Routes.channelMessages(channelId), { body });
-    // fastify.log.info(`Sent content to channel <#${channelId}>`, body, response);
-    return response as RESTPostAPIChannelMessageResult;
-  } catch (_error) {
-    // fastify.log.error(`Error sending content to channel <#${channelId}>`, body);
-    return null;
-  }
-};
+): Promise<RESTPostAPIChannelMessageResult> =>
+  (await rest.post(Routes.channelMessages(channelId), { body })) as RESTPostAPIChannelMessageResult;

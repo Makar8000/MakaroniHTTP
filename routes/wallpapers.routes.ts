@@ -28,6 +28,7 @@ const toResponse = (r: WallpaperRow) => ({
   tag_string: r.title,
   tag_string_artist: "Unknown",
   source: "https://makar.pw",
+  enabled: r.enabled === 1,
 });
 
 /**
@@ -40,7 +41,16 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
   const auth = { onRequest: fastify.basicAuth };
   fastify.get<{ Querystring: WallpaperQuery }>(
     "/wallpapers",
-    { schema: { querystring: querySchema } },
+    {
+      schema: { querystring: querySchema },
+      // disabled wallpapers stay private: listing them needs auth
+      preHandler: (req, reply, done) => {
+        if (req.query.include_disabled) {
+          return fastify.basicAuth(req, reply, done);
+        }
+        done();
+      },
+    },
     async (req, reply) => {
       const { rows, total } = wallpapers.list(req.query);
       const { limit, offset = 0, random = true } = req.query;
@@ -147,6 +157,9 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
     "/wallpapers/domains",
     { ...auth, schema: { body: domainBodySchema } },
     async (req, reply) => {
+      if (!URL.canParse(req.body.base_url)) {
+        return reply.code(400).send({ error: "invalid base_url" });
+      }
       if (wallpapers.findDomain(req.body.name)) {
         return reply.code(409).send({ error: "domain already exists" });
       }
@@ -160,6 +173,9 @@ async function routes(fastify: FastifyInstance, _options: FastifyPluginOptions):
     { ...auth, schema: { body: domainPatchBodySchema } },
     async (req, reply) => {
       const { name } = req.params;
+      if (req.body.base_url !== undefined && !URL.canParse(req.body.base_url)) {
+        return reply.code(400).send({ error: "invalid base_url" });
+      }
       if (!wallpapers.findDomain(name)) {
         return reply.code(404).send({ error: "not found" });
       }

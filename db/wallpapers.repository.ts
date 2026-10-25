@@ -7,10 +7,13 @@ import type {
 } from "../types/wallpapers.types.ts";
 import { db } from "./connection.ts";
 
-const COLUMNS = "id, file_url, title, tags";
+const COLUMNS = "id, file_url, title, tags, enabled";
+
+/** Collapses whitespace runs to single spaces, which the space-padded tag match in list() relies on */
+const normTags = (tags: string): string => tags.split(/\s+/).filter(Boolean).join(" ");
 
 /**
- * Enabled wallpapers, optionally filtered by `tags`.
+ * Enabled wallpapers (all of them with `include_disabled`), optionally filtered by `tags`.
  * Random order by default; `random: false` sorts by id so `offset` pages are stable.
  * @returns the requested page plus `total`, the number of matches ignoring limit/offset
  */
@@ -19,10 +22,14 @@ export const list = ({
   offset = 0,
   tags,
   random = true,
+  include_disabled = false,
 }: WallpaperQuery): { rows: WallpaperRow[]; total: number } => {
   const wanted = (tags ?? "").split(/\s+/).filter(Boolean);
   // instr on space-padded strings = exact whole-tag match, and avoids LIKE wildcards ("_" in tags)
-  const where = ["enabled = 1", ...wanted.map(() => "instr(' ' || tags || ' ', ?) > 0")].join(" AND ");
+  // "1" is SQL true, i.e. no enabled filter
+  const where = [include_disabled ? "1" : "enabled = 1", ...wanted.map(() => "instr(' ' || tags || ' ', ?) > 0")].join(
+    " AND ",
+  );
   const params: (string | number)[] = wanted.map((t) => ` ${t} `);
 
   const total = db
@@ -53,7 +60,7 @@ export const insert = ({ title, tags, file_url, enabled }: WallpaperBody): void 
   db.query("INSERT INTO wallpapers (file_url, title, tags, enabled) VALUES (?, ?, ?, ?)").run(
     file_url,
     title,
-    tags,
+    normTags(tags),
     enabled ? 1 : 0,
   );
 };
@@ -72,6 +79,9 @@ export const update = (id: number, patch: Partial<WallpaperBody>): void => {
     if (k === "enabled") {
       return patch.enabled ? 1 : 0;
     }
+    if (k === "tags") {
+      return normTags(patch.tags as string);
+    }
     return patch[k] as string;
   });
   db.query(`UPDATE wallpapers SET ${fields.map((k) => `${k} = ?`).join(", ")} WHERE id = ?`).run(...values, id);
@@ -84,7 +94,7 @@ export const insertDomain = ({ name, base_url, tags, type = "danbooru" }: Wallpa
   db.query("INSERT INTO wallpaper_domains (name, base_url, tags, type) VALUES (?, ?, ?, ?)").run(
     name,
     base_url,
-    tags,
+    normTags(tags),
     type,
   );
 };
@@ -97,7 +107,7 @@ export const updateDomain = (name: string, patch: Partial<WallpaperDomainBody>):
     return;
   }
   db.query(`UPDATE wallpaper_domains SET ${fields.map((k) => `${k} = ?`).join(", ")} WHERE name = ?`).run(
-    ...fields.map((k) => patch[k] as string),
+    ...fields.map((k) => (k === "tags" ? normTags(patch.tags as string) : (patch[k] as string))),
     name,
   );
 };

@@ -10,6 +10,7 @@ export interface WallpaperRow {
   file_url: string;
   title: string;
   tags: string;
+  enabled: 0 | 1;
 }
 
 export type WallpaperDomainType = "danbooru" | "moebooru" | "custom";
@@ -26,6 +27,7 @@ export interface WallpaperQuery {
   offset?: number;
   tags?: string;
   random?: boolean;
+  include_disabled?: boolean;
 }
 
 export type WallpaperDomainBody = Omit<WallpaperDomainRow, "type"> & { type?: WallpaperDomainType };
