@@ -1,3 +1,4 @@
+import "./util/env.ts";
 import fastifyBasicAuth from "@fastify/basic-auth";
 import fastifyRateLimit from "@fastify/rate-limit";
 import Fastify from "fastify";
@@ -19,12 +20,6 @@ const fastify = Fastify({
     },
   },
 });
-
-// verify basic auth hash is provided
-if (!Bun.env.BASIC_AUTH_HASH?.startsWith("$argon2")) {
-  fastify.log.error("BASIC_AUTH_HASH not set");
-  process.exit(1);
-}
 
 // limited to 80 requests per minute
 fastify.register(fastifyRateLimit, { max: 80, timeWindow: "1 minute" });
